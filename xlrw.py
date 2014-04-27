@@ -14,16 +14,25 @@ import xlutils
 
 
 class Excel(object):
-    def __init__(self, filename):
+    def __init__(self, filename, mode='r'):
         self.path = filename
+        self.flag = None
+        _flag_dict = {'r': 1, 'w': 2, 'rw': 3, 'wr': 3}
         try:
+            self.flag = _flag_dict[mode.lower()]
+        except KeyError:
+            raise XLException('No Such para: %s' % mode)
+        if self.flag == 1:
             self.file = xlrd.open_workbook(self.path)
-        except Exception as e:  # TODO:自定义异常类
-            print e
-        self.sheets = self.file.sheets()  # 表单对象
-        self.sheet_names = self.file.sheet_names()  # 表单名
-        self.sheet_num = self.file.nsheets
-        self.current_sheet = None
+            self.sheets = self.file.sheets()  # 表单对象
+            self.sheet_names = self.file.sheet_names()  # 表单名
+            self.sheet_num = self.file.nsheets
+            self.current_sheet = None
+        elif self.flag ==2:
+            self.file = xlwt.Workbook()
+        else:
+            pass
+
 
     def __getitem__(self, item):  # 模拟容器方式取工作表
         if isinstance(item, int):
@@ -47,6 +56,12 @@ class Excel(object):
         else:
             self.current_sheet = self.file.sheet_by_index(num)
         return self.current_sheet
+
+    def append(self, s):
+        self.file.add_sheet(s)
+
+    def save(self):
+        self.file.save(self.path)
 
 
 class Sheet(object):
@@ -87,3 +102,12 @@ class Sheet(object):
 
     def get_cell(self, row, col):
         return self.sh.cell(rowx=row, colx=col).value
+
+
+class XLException(Exception):
+    def __init__(self, e):
+        self.e = e
+        Exception.__init__(self)
+
+    def __str__(self):
+        return self.e
